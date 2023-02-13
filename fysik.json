@@ -1,20 +1,59 @@
 {
     "General": {
-        "Font": "Times New Roman"
+        "Font": "Times New Roman",
+        "Headings": {
+            "Size": 15
+        },
+        "Paragraphs": {
+            "Size": 12
+        }
     },
     "Front_page": {
         "Create": true,
-        "Title": "Fysik Journal Eksempel"
+        "Title": "Fysik Journal Eksempel",
+        "Image": {
+            "Exist": true,
+            "URL": "641px-parabolic_trajectorysvg.png"
+        }
     },
     "Content": {
-        "Heading": {
-            "Text": "Dette er en overskrift eller heading",
-            "Size": 32,
-            "Level": 1
+        "Formål": {
+            "Type": "Heading"
         },
-        "Paragraph": {
-            "Text": "Dette er en paragraph"
+        "Indsæt formål her": {
+            "Type": "Paragraph"
+        },
+        "Materialeliste / Forsøgsopstilling": {
+            "Type": "Heading"
+        },
+        "Indsæt materialeliste / forsøgsopstilling her": {
+            "Type": "Paragraph"
+        },
+        "Fremgangsmåde": {
+            "Type": "Heading"
+        },
+        "Indsæt fremgangsmåde her": {
+            "Type": "Paragraph"
+        },
+        "Målte resultater": {
+            "Type": "Heading"
+        },
+        "Indsæt målte resultater her": {
+            "Type": "Paragraph"
+        },
+        "Resultatbehandling / Databehandling": {
+            "Type": "Heading"
+        },
+        "Indsæt resultatbehandling / databehandling her": {
+            "Type": "Paragraph"
+        },
+        "Vurdering / Fejlkilder": {
+            "Type": "Heading"
+        },
+        "Indsæt vurdering / fejlkilder her": {
+            "Type": "Paragraph"
         }
+
     } 
 }
 

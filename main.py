@@ -1,9 +1,12 @@
 from json import load, dump
 from enum import Enum
 from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_ALIGN_PARAGRAPH 
+from docx.shared import Inches, Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.style import WD_STYLE_TYPE
+from docx.oxml.ns import qn
 from datetime import datetime
+from sys import platform
 import argparse
 
 
@@ -26,13 +29,54 @@ class Journal:
                 raise ValueError("Kunne ikke finde et eksisterende fag (fysik, kemi, teknologi)")
             
     def get_content(self, path: str) -> dict:
-        with open(path, 'r') as f:
+        with open(path, 'r', encoding='utf-8') as f:
             return load(f)
 
-    def create(self) -> bool:
-        self.document = Document()
-        self.data = self.get_content(path=self.fag.value[0])
+    def load_front_page(self) -> None:
+        if self.data['Front_page']['Create']:
+            self.heading = self.document.add_heading(f"{self.data['Front_page']['Title']}", 0)
+            self.heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
+            # Forklar dette i dokumentationen
+            # https://stackoverflow.com/questions/60921603/how-do-i-change-heading-font-face-and-size-in-python-docx
+            title_style = self.heading.style
+            rFonts = title_style.element.rPr.rFonts
+            rFonts.set(qn("w:asciiTheme"), "Times New Roman")
+
+            test = self.document.add_paragraph("")
+            test.add_run("Anders Balleby\n2.U\nFysik A", style='Front_page').bold = True
+            test.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+            if (image := self.data['Front_page']['Image'])['Exist']:
+                url = image['URL']
+                self.document.add_picture(url, width=Inches(5.9), height=Inches(2.36))
+
+            self.document.add_page_break()
+
+    def load_styles(self) -> None:
+        # Font indstillinger
+
+        obj_styles = self.document.styles
+
+        # Forside
+        obj_charstyle = obj_styles.add_style('Front_page', WD_STYLE_TYPE.CHARACTER)
+        obj_font = obj_charstyle.font
+        obj_font.name = f'{self.data["General"]["Font"]}'
+        obj_font.size = Pt(22)
+
+        # Overskrifter
+        obj_charstyle = obj_styles.add_style('Overskrift', WD_STYLE_TYPE.CHARACTER)
+        obj_font = obj_charstyle.font
+        obj_font.name = f'{self.data["General"]["Font"]}'
+        obj_font.size = Pt(self.data["General"]["Headings"]["Size"])
+
+        # Afsnit
+        obj_charstyle = obj_styles.add_style('Afsnit', WD_STYLE_TYPE.CHARACTER)
+        obj_font = obj_charstyle.font
+        obj_font.name = f'{self.data["General"]["Font"]}'
+        obj_font.size = Pt(self.data["General"]["Paragraphs"]["Size"])
+
+    def load_header(self) -> None:
         section = self.document.sections[0]
         header = section.header
         paragraph = header.paragraphs[0]
@@ -45,67 +89,32 @@ class Journal:
         
         paragraph.style = self.document.styles["Header"]
 
-        if self.data['Front_page']['Create'] == True:
-            heading = self.document.add_heading(f"{self.data['Front_page']['Title']}", 0)
-            heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    def create(self) -> bool:
+        self.document = Document()
+        self.data = self.get_content(path=self.fag.value[0])
 
-            self.document.add_page_break()
+        # Styles
+        self.load_styles()
+
+        # Header
+        self.load_header()
+        
+        
+
+        # Forside-Tjek
+        self.load_front_page()
 
         self.content = self.data['Content']
         for i in self.content:
-            match i:
+            match self.content[i]['Type']:
                 case "Heading":
-                    self.document.add_heading(f"{self.content[i]['Text']}", level=self.content[i]['Level'])
+                    tmp_heading = self.document.add_heading("", 1)
+                    tmp_heading.add_run(f"{i}", style='Overskrift')
                 case "Paragraph":
-                    self.document.add_paragraph(f"{self.content[i]['Text']}")
+                    tmp_paragraph = self.document.add_paragraph("")
+                    tmp_paragraph.add_run(f"{i}", style='Afsnit')
 
-        self.document.save('fysik_journal.docx')
-        return True
-
-
-        """
-        document.add_heading('Document Title', 0)
-
-        p = document.add_paragraph('A plain paragraph having some ')
-        p.add_run('bold').bold = True
-        p.add_run(' and some ')
-        p.add_run('italic.').italic = True
-
-        document.add_heading('Heading, level 1', level=1)
-        document.add_paragraph('Intense quote', style='Intense Quote')
-
-        document.add_paragraph(
-            'first item in unordered list', style='List Bullet'
-        )
-        document.add_paragraph(
-            'first item in ordered list', style='List Number'
-        )
-
-        document.add_picture('monty_truth.png', width=Inches(1.25))
-
-        records = (
-            (3, '101', 'Spam'),
-            (7, '422', 'Eggs'),
-            (4, '631', 'Spam, spam, eggs, and spam')
-        )
-
-        table = document.add_table(rows=1, cols=3)
-        hdr_cells = table.rows[0].cells
-        hdr_cells[0].text = 'Qty'
-        hdr_cells[1].text = 'Id'
-        hdr_cells[2].text = 'Desc'
-        for qty, id, desc in records:
-            row_cells = table.add_row().cells
-            row_cells[0].text = str(qty)
-            row_cells[1].text = id
-            row_cells[2].text = desc
-
-        document.add_page_break()
-
-        document.save('demo.docx')
-        
-        return True
-        """
+        self.document.save(f'output/{self.heading.text}.docx')
         return True
 
 def load_parser() -> dict:
@@ -120,12 +129,21 @@ def load_parser() -> dict:
     args = parser.parse_args()
     return vars(args)
 
-
 if __name__ == "__main__":
     config = load_parser() # Indlæs argumenter fra CLI
-
+    
     journal = Journal(config['fag'])
     if journal.create():
         print("Sucessfully created journal")
+        print(f"Opening {(name := journal.heading.text)}")
+        
+        if platform == "win32":
+            from os import startfile
+            startfile(f"C:/Users/ander/Documents/Programmering-Eksamen/output/{name}.docx")
+        elif platform == "darwin":
+            #  TODO: implementer understøttelse til MacOS / Darwin
+            raise Error("Darwin & MacOS not supported yet.")
+            pass
+
     else:
-        print("Failed")
+        raise Error("Failed to save journal")
