@@ -1,0 +1,20 @@
+{
+    "General": {
+        "Font": "Times New Roman"
+    },
+    "Front_page": {
+        "Create": true,
+        "Title": "Fysik Journal Eksempel"
+    },
+    "Content": {
+        "Heading": {
+            "Text": "Dette er en overskrift eller heading",
+            "Size": 32,
+            "Level": 1
+        },
+        "Paragraph": {
+            "Text": "Dette er en paragraph"
+        }
+    } 
+}
+
