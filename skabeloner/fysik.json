@@ -10,18 +10,21 @@
     },
     "Front_page": {
         "Create": true,
-        "Title": "Fysik Journal Eksempel",
-        "Image": {
-            "Exist": true,
-            "URL": "641px-parabolic_trajectorysvg.png"
-        }
+        "Title": "Fysik Journal Eksempel"
     },
     "Content": {
         "Formål": {
             "Type": "Heading"
         },
         "Indsæt formål her": {
-            "Type": "Paragraph"
+            "Type": "Paragraph",
+            "Attributes": {
+                "Bold": true,
+                "Size": 20,
+                "Italic": true,
+                "Underline": true,
+                "Font": "Calibri"
+            }
         },
         "Materialeliste / Forsøgsopstilling": {
             "Type": "Heading"
