@@ -8,23 +8,12 @@
             "Size": 12
         }
     },
-    "Front_page": {
-        "Create": true,
-        "Title": "Fysik Journal Eksempel"
-    },
     "Content": {
         "Formål": {
             "Type": "Heading"
         },
         "Indsæt formål her": {
-            "Type": "Paragraph",
-            "Attributes": {
-                "Bold": true,
-                "Size": 20,
-                "Italic": true,
-                "Underline": true,
-                "Font": "Calibri"
-            }
+            "Type": "Paragraph"
         },
         "Materialeliste / Forsøgsopstilling": {
             "Type": "Heading"

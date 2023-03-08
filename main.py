@@ -30,12 +30,13 @@ class Fag(Enum):
 
 class Journal:
     def __init__(self, config: dict) -> None:
-        self.title = config['titel']
-        self.forside = config['forside']
+        self.title = config['title']
+        self.forside = config['front']
+        self.save_path = config['out']
         self.config = config
 
         self.settings = self.get_content(path="settings.json")
-        _fag: str = config['fag']
+        _fag: str = config['subject']
         match _fag.upper():
             case "FYSIK":
                 self.fag = Fag.FYSIK
@@ -65,12 +66,12 @@ class Journal:
 
         return re.match(regex, url) is not None
     
-    def assign_attributes(self, text, attr: dict) -> None:
-        font = text.font
+    def assign_attributes(self, text, run, attr: dict) -> None:
+        font = run.font
         for attribute in attr:
             match str(attribute).capitalize():
                 case "Bold":
-                    text.bold = True
+                    font.bold = True
                 case "Size":
                     font.size = Pt(attr['Size'])
                 case "Font":
@@ -79,12 +80,20 @@ class Journal:
                     font.italic = True
                 case "Underline":
                     font.underline = True
+                case "Alignment":
+                    match attr[attribute]:
+                        case "Center":
+                            text.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                        case "Left":
+                            text.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                        case "Right":
+                            text.alignment = WD_ALIGN_PARAGRAPH.RIGHT
                 case _: # Ingen- eller ukendt attribute
                     break
 
     def load_front_page(self) -> None:
         self.heading = self.document.add_heading("", 0)
-        self.heading.add_run(self.data['Front_page']['Title'], style='Front_page')
+        self.heading.add_run(self.title, style='Front_page')
         self.heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
         self.heading.bold = True
 
@@ -94,19 +103,18 @@ class Journal:
         rFonts = title_style.element.rPr.rFonts
         rFonts.set(qn("w:asciiTheme"), "Times New Roman")
 
-        test = self.document.add_paragraph("")
-        test.add_run(f"{self.settings['Elev']}\n{self.settings['Klasse']}\n{self.fag.name.capitalize()}", style='Front_page').bold = True
-        test.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        byline = self.document.add_paragraph("")
+        byline.add_run(f"{self.settings['Elev']}\n{self.settings['Klasse']}\n{self.fag.name.capitalize()}", style='Front_page').bold = True
+        byline.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-        if (image := self.config['forside_billede']):
+        if (image := self.config['front_picture']):
             if self.is_url(url=image):
-                # TODO: Download image
+                # TODO: Download image - Slå try/except til igen ved prod.
                 #try:
                     from wget import download as wdownload
                     #if not image[-3:] in ["png", "jpg"] and not image[-4:] == "jpeg":
                     #    image = f'{image}.png'
-
-                    self.document.add_picture(wdownload(image),width=Inches(5.9), height=Inches(2.36)) 
+                    self.document.add_picture(wdownload(image, out=f"{__file__[:-8]}/images/"),width=Inches(5.9), height=Inches(2.36)) 
                 #except: # Programmet må godt fortsætte
                     #print("Kunne ikke indlæse billede, fortsætter uden...")
             elif os.path.exists(image):
@@ -171,49 +179,57 @@ class Journal:
                     if not (level := self.content[i].get('Level')):
                         level = 1
 
-                    tmp_heading = self.document.add_heading("", level).add_run(f"{i}", style='Overskrift')
-                    
+                    tmp_heading = self.document.add_heading("", level)
+                    run = tmp_heading.add_run(f"{i}", style='Overskrift')
+
                     if (attributes := self.content[i].get('Attributes')):
-                        self.assign_attributes(tmp_heading, attributes)
+                        self.assign_attributes(tmp_heading, run, attributes)
 
                 case "Paragraph":    
-                    tmp_paragraph = self.document.add_paragraph("").add_run(f"{i}", style='Afsnit')
+                    tmp_paragraph = self.document.add_paragraph("")
+                    run = tmp_paragraph.add_run(f"{i}", style='Afsnit')
 
                     if (attributes := self.content[i].get('Attributes')):
-                        self.assign_attributes(tmp_paragraph, attributes)
-                    
-        self.document.save(f'{self.fag.value["output"]}/{self.heading.text}.docx')
+                        self.assign_attributes(tmp_paragraph, run, attributes)
+        
+        if self.save_path == ".": # Gem lokalt / Bruges til debugging
+            self.document.save(f'{self.fag.value["output"]}/{self.title}.docx')
+        else:
+            try:
+                print(f'/{self.save_path}.docx')
+                self.document.save(f'{self.save_path}/{self.title}.docx')
+            except NotADirectoryError:
+                self.document.save(f'{self.fag.value["output"]}/{self.title}.docx')
+                print("Kunne ikke gemme filen ved den valgte lokation. Gemmer ved ny lokation:")
+                print(f'{self.fag.value["output"]}/{self.title}.docx')
+
         return True
 
 def load_parser() -> dict:
     parser = argparse.ArgumentParser(description="Program til oprettelse af journaler udfra skabeloner i .JSON filer",
                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-ti", "--titel", help="titel på dokumentet", default="Indsæt Titel Her", required=False)
-    parser.add_argument("-fo", "--forside", action="store_true", help="forside i dokumentet", default=True, required=False)
-    parser.add_argument("-fob", "--forside-billede", help="URL eller sti til lokalt eller online billede til forsiden", required=False)
-    parser.add_argument("-fa", "--fag", help="faget der skal oprettes journal til", required=True)
+    parser.add_argument("-t", "--title", help="titel på dokumentet", default="Indsæt Titel Her", required=False)
+    parser.add_argument("-f", "--front", action="store_false", help="forside i dokumentet", default=True, required=False)
+    parser.add_argument("-p", "--front-picture", help="URL eller sti til lokalt eller online billede til forsiden", required=False)
+    parser.add_argument("-o", "--out", help="sti til hvor filen skal gemmes", required=True)
+    parser.add_argument("-s", "--subject", help="faget der skal oprettes journal til", required=True)
     args = parser.parse_args()
     return vars(args)
 
 if __name__ == "__main__":
-
     config = load_parser() # Indlæs argumenter fra CLI
-    
     print(config)
     journal = Journal(config)
     
     if journal.create():
         print("Sucessfully created journal")
-        print(f"Opening {(name := journal.heading.text)}")
+        print(f"Opening {(name := journal.title)}")
         
         if platform == "win32":
-            from os import startfile
-            startfile(f"C:/Users/ander/Documents/Programmering-Eksamen/output/{name}.docx")
+            os.startfile(f"{journal.save_path}/{name}.docx")
         elif platform == "darwin":
-            #  TODO: implementer understøttelse til MacOS / Darwin
-            from os import system
-            path = f"output/{name}.docx"
-            system(f"open -a '/Applications/Microsoft Word.app' '{path}'")
+            # Understøttelse til MacOS
+            os.system(f"open -a '/Applications/Microsoft Word.app' '{journal.save_path}/{name}.docx'")
     else:
         raise RuntimeError("Failed to save journal")
     
