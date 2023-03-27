@@ -32,7 +32,7 @@ class Journal:
     def __init__(self, config: dict) -> None:
         self.title = config['title']
         self.forside = config['front']
-        self.save_path = config['out']
+        self.save_path = config['out'] if config['out'] else "output\\"
         self.config = config
 
         self.settings = self.get_content(path="settings.json")
@@ -194,6 +194,7 @@ class Journal:
         
         if self.save_path == ".": # Gem lokalt / Bruges til debugging
             self.document.save(f'{self.fag.value["output"]}/{self.title}.docx')
+            self.save_path = f'{self.fag.value["output"]}'
         else:
             try:
                 print(f'/{self.save_path}.docx')
@@ -211,7 +212,7 @@ def load_parser() -> dict:
     parser.add_argument("-t", "--title", help="titel på dokumentet", default="Indsæt Titel Her", required=False)
     parser.add_argument("-f", "--front", action="store_false", help="forside i dokumentet", default=True, required=False)
     parser.add_argument("-p", "--front-picture", help="URL eller sti til lokalt eller online billede til forsiden", required=False)
-    parser.add_argument("-o", "--out", help="sti til hvor filen skal gemmes", required=True)
+    parser.add_argument("-o", "--out", help="sti til hvor filen skal gemmes", required=False)
     parser.add_argument("-s", "--subject", help="faget der skal oprettes journal til", required=True)
     args = parser.parse_args()
     return vars(args)
@@ -226,7 +227,7 @@ if __name__ == "__main__":
         print(f"Opening {(name := journal.title)}")
         
         if platform == "win32":
-            os.startfile(f"{journal.save_path}/{name}.docx")
+            os.startfile(f"{journal.save_path}{name}.docx".replace("/", "\\")) 
         elif platform == "darwin":
             # Understøttelse til MacOS
             os.system(f"open -a '/Applications/Microsoft Word.app' '{journal.save_path}/{name}.docx'")
