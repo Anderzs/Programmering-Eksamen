@@ -110,13 +110,11 @@ class Journal:
         if (image := self.config['front_picture']):
             if self.is_url(url=image):
                 # TODO: Download image - Slå try/except til igen ved prod.
-                #try:
+                try:
                     from wget import download as wdownload
-                    #if not image[-3:] in ["png", "jpg"] and not image[-4:] == "jpeg":
-                    #    image = f'{image}.png'
-                    self.document.add_picture(wdownload(image, out=f"{__file__[:-8]}/images/"),width=Inches(5.9), height=Inches(2.36)) 
-                #except: # Programmet må godt fortsætte
-                    #print("Kunne ikke indlæse billede, fortsætter uden...")
+                    self.document.add_picture(wdownload(image),width=Inches(5.9), height=Inches(2.36)) 
+                except: # Programmet må godt fortsætte
+                    print("Kunne ikke indlæse billede, fortsætter uden...")
             elif os.path.exists(image):
                 self.document.add_picture(image, width=Inches(5.9), height=Inches(2.36))
             else:
@@ -218,6 +216,9 @@ def load_parser() -> dict:
     return vars(args)
 
 if __name__ == "__main__":
+    if not os.path.exists("output"):
+        os.mkdir("output")
+
     config = load_parser() # Indlæs argumenter fra CLI
     print(config)
     journal = Journal(config)
