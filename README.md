@@ -1,5 +1,5 @@
 # Programmering-Eksamen
-Mit eksamensprojekt i Programmering på C niveau på HTX i Holstebro 2022.
+Mit eksamensprojekt i Programmering på C niveau på HTX i Holstebro 2023.
 
 ## Om programmet
 Programmet er et simpelt python **CLI**-program, som opretter journaler / rapporter i HTX-fagende: Fysik, Kemi & Teknologi. Journalerne bliver oprettet på baggrund af skabeloner formatteret i .JSON filer, som oprettes af brugeren. Når en skabelon er oprettet i .JSON format, vil programmet konvertere filen til en .docx fil.
